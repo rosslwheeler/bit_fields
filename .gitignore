@@ -1,0 +1,37 @@
+# Build artifacts
+build/
+docs/
+cmake-build-*/
+build-asan/
+build-coverage/
+coverage-html/
+coverage.info
+
+# Compiled objects
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+*.exe
+
+# CMake aux files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Testing/
+CTestTestfile.cmake
+compile_commands.json
+
+# Editor/OS noise
+.DS_Store
+*.log
+Thumbs.db
+*.swp
+
+# GCOV/LCOV artifacts
+*.gcda
+*.gcno
+*.gcov

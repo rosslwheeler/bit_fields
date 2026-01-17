@@ -1,0 +1,158 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }} ${{ matrix.version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # GCC versions
+          - os: ubuntu-22.04
+            compiler: gcc
+            version: 10
+            cc: gcc-10
+            cxx: g++-10
+          - os: ubuntu-22.04
+            compiler: gcc
+            version: 12
+            cc: gcc-12
+            cxx: g++-12
+          - os: ubuntu-24.04
+            compiler: gcc
+            version: 14
+            cc: gcc-14
+            cxx: g++-14
+
+          # Clang versions
+          - os: ubuntu-22.04
+            compiler: clang
+            version: 11
+            cc: clang-11
+            cxx: clang++-11
+          - os: ubuntu-22.04
+            compiler: clang
+            version: 15
+            cc: clang-15
+            cxx: clang++-15
+          - os: ubuntu-24.04
+            compiler: clang
+            version: 18
+            cc: clang-18
+            cxx: clang++-18
+
+          # MSVC
+          - os: windows-2019
+            compiler: msvc
+            version: 2019
+          - os: windows-2022
+            compiler: msvc
+            version: 2022
+
+          # macOS
+          - os: macos-latest
+            compiler: appleclang
+            version: latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install GCC (Linux)
+        if: runner.os == 'Linux' && matrix.compiler == 'gcc'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.cxx }}
+
+      - name: Install Clang (Linux)
+        if: runner.os == 'Linux' && matrix.compiler == 'clang'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-${{ matrix.version }}
+
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cmake -B build \
+            -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DBIT_FIELDS_BUILD_TESTS=ON \
+            -DBIT_FIELDS_BUILD_EXAMPLES=ON
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cmake -B build \
+            -DBIT_FIELDS_BUILD_TESTS=ON \
+            -DBIT_FIELDS_BUILD_EXAMPLES=ON
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -B build -DBIT_FIELDS_BUILD_TESTS=ON -DBIT_FIELDS_BUILD_EXAMPLES=ON
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -C Release
+
+  sanitizers:
+    name: AddressSanitizer + UBSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build and test with sanitizers
+        run: make asan-test
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
+      - name: Generate coverage report
+        run: make coverage-report
+
+      - name: Enforce 100% coverage
+        run: |
+          cd build-coverage
+          summary=$(lcov --summary coverage.info)
+          echo "$summary"
+          lines=$(echo "$summary" | awk '/lines\.*:/{print $2}')
+          functions=$(echo "$summary" | awk '/functions\.*:/{print $2}')
+          if [ "$lines" != "100.0%" ] || [ "$functions" != "100.0%" ]; then
+            echo "Coverage below 100% (lines=$lines functions=$functions)"
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: build-coverage/coverage-html/
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        run: |
+          find include tests examples -name '*.h' -o -name '*.hpp' -o -name '*.cpp' | \
+            xargs clang-format --dry-run --Werror
