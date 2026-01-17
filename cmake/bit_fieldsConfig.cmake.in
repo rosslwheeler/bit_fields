@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/bit_fieldsTargets.cmake")
+
+check_required_components(bit_fields)
