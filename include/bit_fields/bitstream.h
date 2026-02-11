@@ -174,6 +174,13 @@ public:
   explicit BitReader(std::span<const std::byte> buffer) noexcept
     : buffer_(buffer), bit_offset_(0) {}
 
+  /// Construct from a reference to an integral type (e.g. uint32_t).
+  /// The reader views the in-memory representation of the value.
+  template <typename T>
+    requires std::is_integral_v<T>
+  explicit BitReader(const T& value) noexcept
+    : buffer_(std::as_bytes(std::span<const T, 1>(&value, 1))), bit_offset_(0) {}
+
   /// Reset read position to the beginning.
   void reset() noexcept { bit_offset_ = 0; }
 
@@ -415,6 +422,13 @@ public:
       b = std::byte{0};
     }
   }
+
+  /// Construct from a reference to an integral type (e.g. uint32_t).
+  /// The writer operates on the in-memory representation of the value.
+  template <typename T>
+    requires std::is_integral_v<T>
+  explicit BitWriter(T& value) noexcept
+    : BitWriter(std::as_writable_bytes(std::span<T, 1>(&value, 1))) {}
 
   /// Get current bit offset.
   [[nodiscard]] std::size_t bit_position() const noexcept { return bit_offset_; }

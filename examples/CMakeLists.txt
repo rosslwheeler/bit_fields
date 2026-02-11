@@ -13,6 +13,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 set(EXAMPLE_SOURCES
     basic_usage.cpp
     constexpr_usage.cpp
+    cache_example.cpp
 )
 
 # Add more examples here as needed

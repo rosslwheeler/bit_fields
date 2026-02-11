@@ -16,6 +16,7 @@ endif
 .PHONY: all build test clean rebuild
 .PHONY: asan asan-test asan-clean
 .PHONY: coverage coverage-test coverage-report coverage-clean
+.PHONY: benchmark
 
 # =============================================================================
 # Standard build
@@ -29,7 +30,7 @@ build: $(BUILD_DIR)/Makefile
 
 $(BUILD_DIR)/Makefile:
 	@mkdir -p $(BUILD_DIR)
-	@cd $(BUILD_DIR) && cmake .. -DBIT_FIELDS_BUILD_TESTS=ON
+	@cd $(BUILD_DIR) && cmake .. -DBIT_FIELDS_BUILD_TESTS=ON -DBIT_FIELDS_BUILD_EXAMPLES=ON
 
 test: build
 	@cd $(BUILD_DIR) && ctest --output-on-failure
@@ -90,6 +91,13 @@ coverage-report: coverage-test
 
 coverage-clean:
 	@rm -rf $(BUILD_DIR_COV)
+
+# =============================================================================
+# Benchmark
+# =============================================================================
+
+benchmark: build
+	@./$(BUILD_DIR)/tests/bench_bitstream
 
 # =============================================================================
 # Clean all builds
