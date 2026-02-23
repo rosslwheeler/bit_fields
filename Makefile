@@ -5,6 +5,10 @@ BUILD_DIR := build
 BUILD_DIR_ASAN := build-asan
 BUILD_DIR_COV := build-coverage
 
+CMAKE ?= cmake
+
+# Auto-detect Ninja; override with CMAKE_GENERATOR= to force Unix Makefiles.
+CMAKE_GENERATOR ?= $(shell command -v ninja >/dev/null 2>&1 && echo "-G Ninja")
 
 # Prefer the gcov that matches the configured compiler, then fall back.
 CXX ?= c++
@@ -25,15 +29,14 @@ endif
 # Default target: configure and build with tests enabled
 all: build
 
-build: $(BUILD_DIR)/Makefile
-	@$(MAKE) -C $(BUILD_DIR)
+build: $(BUILD_DIR)/CMakeCache.txt
+	$(CMAKE) --build $(BUILD_DIR)
 
-$(BUILD_DIR)/Makefile:
-	@mkdir -p $(BUILD_DIR)
-	@cd $(BUILD_DIR) && cmake .. -DBIT_FIELDS_BUILD_TESTS=ON -DBIT_FIELDS_BUILD_EXAMPLES=ON
+$(BUILD_DIR)/CMakeCache.txt:
+	$(CMAKE) -S . -B $(BUILD_DIR) -DBIT_FIELDS_BUILD_TESTS=ON -DBIT_FIELDS_BUILD_EXAMPLES=ON $(CMAKE_GENERATOR)
 
 test: build
-	@cd $(BUILD_DIR) && ctest --output-on-failure
+	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
 clean:
 	@rm -rf $(BUILD_DIR)
@@ -44,18 +47,18 @@ rebuild: clean all
 # AddressSanitizer (ASAN) build
 # =============================================================================
 
-asan: $(BUILD_DIR_ASAN)/Makefile
-	@$(MAKE) -C $(BUILD_DIR_ASAN)
+asan: $(BUILD_DIR_ASAN)/CMakeCache.txt
+	$(CMAKE) --build $(BUILD_DIR_ASAN)
 
-$(BUILD_DIR_ASAN)/Makefile:
-	@mkdir -p $(BUILD_DIR_ASAN)
-	@cd $(BUILD_DIR_ASAN) && cmake .. \
+$(BUILD_DIR_ASAN)/CMakeCache.txt:
+	$(CMAKE) -S . -B $(BUILD_DIR_ASAN) \
 		-DBIT_FIELDS_BUILD_TESTS=ON \
 		-DCMAKE_BUILD_TYPE=Debug \
-		-DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+		-DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
+		$(CMAKE_GENERATOR)
 
 asan-test: asan
-	@cd $(BUILD_DIR_ASAN) && ctest --output-on-failure
+	ctest --test-dir $(BUILD_DIR_ASAN) --output-on-failure
 
 asan-clean:
 	@rm -rf $(BUILD_DIR_ASAN)
@@ -64,18 +67,18 @@ asan-clean:
 # Code coverage build (gcov/lcov)
 # =============================================================================
 
-coverage: $(BUILD_DIR_COV)/Makefile
-	@$(MAKE) -C $(BUILD_DIR_COV)
+coverage: $(BUILD_DIR_COV)/CMakeCache.txt
+	$(CMAKE) --build $(BUILD_DIR_COV)
 
-$(BUILD_DIR_COV)/Makefile:
-	@mkdir -p $(BUILD_DIR_COV)
-	@cd $(BUILD_DIR_COV) && cmake .. \
+$(BUILD_DIR_COV)/CMakeCache.txt:
+	$(CMAKE) -S . -B $(BUILD_DIR_COV) \
 		-DBIT_FIELDS_BUILD_TESTS=ON \
 		-DCMAKE_BUILD_TYPE=Debug \
-		-DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage -g -O0"
+		-DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage -g -O0" \
+		$(CMAKE_GENERATOR)
 
 coverage-test: coverage
-	@cd $(BUILD_DIR_COV) && ctest --output-on-failure
+	ctest --test-dir $(BUILD_DIR_COV) --output-on-failure
 
 coverage-report: coverage-test
 	@echo "Generating coverage report..."
