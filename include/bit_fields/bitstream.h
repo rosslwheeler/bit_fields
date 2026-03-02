@@ -306,14 +306,15 @@ public:
 
   /// Assert that parsed fields match expected values (debug only).
   template <std::size_t N, std::size_t M>
-  void assert_expected(const ParsedPacket<N>& parsed, const ExpectedTable<M>& expected) const {
+  void assert_expected([[maybe_unused]] const ParsedPacket<N>& parsed,
+                       [[maybe_unused]] const ExpectedTable<M>& expected) const {
     assert(verify_expected(parsed, expected));
   }
 
   /// Assert that parsed fields pass predicate checks (debug only).
   template <std::size_t N, typename Predicate, std::size_t M>
-  void assert_expected(const ParsedPacket<N>& parsed,
-                       const std::array<ExpectedCheck<Predicate>, M>& expected) const {
+  void assert_expected([[maybe_unused]] const ParsedPacket<N>& parsed,
+                       [[maybe_unused]] const std::array<ExpectedCheck<Predicate>, M>& expected) const {
     assert(verify_expected(parsed, expected));
   }
 
