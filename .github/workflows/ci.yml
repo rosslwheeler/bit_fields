@@ -49,9 +49,6 @@ jobs:
             cxx: clang++-18
 
           # MSVC
-          - os: windows-2019
-            compiler: msvc
-            version: 2019
           - os: windows-2022
             compiler: msvc
             version: 2022
@@ -138,7 +135,7 @@ jobs:
           fi
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: build-coverage/coverage-html/
